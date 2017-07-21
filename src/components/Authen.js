@@ -19,7 +19,7 @@ class Authen extends Component {
         isLoggedIn: false,
     };
 
-    login = (e) => {
+    login = () => {
         const email = this.state.email;
         const password = this.state.password;
 
@@ -29,7 +29,7 @@ class Authen extends Component {
 
         promise.then(user => {
             let message = 'Welcome, you are now logged in!';
-            this.setState({err: message,isLoggedIn: true});
+            this.setState({err: message, isLoggedIn: true});
         });
 
         promise.catch(e => {
@@ -38,7 +38,7 @@ class Authen extends Component {
         })
     };
 
-    signup = (e) => {
+    signup = () => {
         const email = this.state.email;
         const password = this.state.password;
 
@@ -60,14 +60,56 @@ class Authen extends Component {
             });
     };
 
-    logout = (e) => {
+    logout = () => {
         let promise = firebase.auth().signOut();
         promise.then(() => {
             let message = 'You are now logged out!';
             this.setState({err: message, isLoggedIn: false});
+        }).catch(err => {
+            this.setState({err: err.message});
         });
     };
 
+    // Signs in with popup
+    google = () => {
+        let provider = new firebase.auth.GoogleAuthProvider();
+
+        // Use redirect instead of Popup for better mobile experience
+        let promise = firebase.auth().signInWithPopup(provider);
+
+        promise.then(result => {
+            let user = result.user;
+            firebase.database().ref(`users/${user.uid}`).set({
+                email: user.email,
+                name: user.displayName,
+            });
+            this.setState({err: 'You are now sign in via Google', isLoggedIn: true});
+        });
+
+        promise.catch(e => {
+            let msg = e.message;
+            this.setState({err: msg});
+        })
+    };
+
+    // Signs in with redirect
+    googleRedirect = () => {
+        let provider = new firebase.auth.GoogleAuthProvider();
+        firebase.auth().signInWithRedirect(provider);
+
+        firebase.auth().getRedirectResult().then( result => {
+            let user = result.user;
+            firebase.database().ref(`users/${user.uid}`).set({
+                email: user.email,
+                name: user.displayName,
+            });
+            this.setState({err: 'You are now sign in via Google', isLoggedIn: true});
+
+        }).catch(err => {
+            let msg = err.message;
+            this.setState({err: msg});
+        });
+    };
 
     render(){
         return(
@@ -91,6 +133,11 @@ class Authen extends Component {
                     id="logout"
                     onClick={this.logout}
                     className={this.state.isLoggedIn ? '' : 'hide'}>Logout</button>
+                <br/>
+                <button
+                    onClick={this.googleRedirect}
+                    id="google" className="google"
+                >Sign In with Google</button>
             </div>
         );
     }
